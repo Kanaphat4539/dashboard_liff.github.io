@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="Dashboard รายงานปัญหาและสถานะเครื่อง SCG LoadAlert">
+  <title>Dashboard | LoadAlert</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <!-- LINE LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+
+<!-- ========== LOADING ========== -->
+<div id="loading-screen" class="loading-screen">
+  <div class="loading-inner">
+    <div class="loading-logo">
+      <div class="logo-ring">
+        <div class="logo-ring-inner"></div>
+      </div>
+      <h1>LoadAlert</h1>
+      <p>Dashboard ระบบติดตาม</p>
+    </div>
+    <div class="loading-bar">
+      <div class="loading-bar-fill"></div>
+    </div>
+    <p class="loading-text">กำลังโหลดข้อมูล...</p>
+  </div>
+</div>
+
+<!-- ========== APP ========== -->
+<div id="app" class="app hidden">
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="header-logo">
+        <span class="header-logo-icon">⚡</span>
+      </div>
+      <div class="header-title-block">
+        <h1>LoadAlert</h1>
+        <span class="header-sub">Dashboard</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="live-indicator">
+        <span class="live-dot"></span>
+        <span class="live-text">LIVE</span>
+      </div>
+      <button id="btn-refresh" class="btn-icon-header" onclick="refreshDashboard()" aria-label="รีเฟรช" title="รีเฟรช">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"></polyline>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Last updated -->
+  <div class="update-bar">
+    <span class="update-bar-text">อัปเดตล่าสุด: <span id="last-update-time">--</span></span>
+    <span class="update-bar-date" id="current-date">--</span>
+  </div>
+
+  <!-- Scrollable content -->
+  <div class="dashboard-body">
+
+    <!-- ===== KPI CARDS ===== -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-icon">📊</span>
+        <h2 class="section-title">KPI วันนี้</h2>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card kpi-alert">
+          <div class="kpi-icon">🔴</div>
+          <div class="kpi-body">
+            <div class="kpi-value" id="kpi-total">--</div>
+            <div class="kpi-label">เคสทั้งหมด</div>
+          </div>
+          <div class="kpi-trend" id="kpi-total-trend"></div>
+        </div>
+        <div class="kpi-card kpi-waiting">
+          <div class="kpi-icon">⏳</div>
+          <div class="kpi-body">
+            <div class="kpi-value" id="kpi-waiting">--</div>
+            <div class="kpi-label">รอรับงาน</div>
+          </div>
+          <div class="kpi-badge urgent" id="kpi-waiting-badge"></div>
+        </div>
+        <div class="kpi-card kpi-active">
+          <div class="kpi-icon">⚙️</div>
+          <div class="kpi-body">
+            <div class="kpi-value" id="kpi-active">--</div>
+            <div class="kpi-label">กำลังดำเนินการ</div>
+          </div>
+        </div>
+        <div class="kpi-card kpi-done">
+          <div class="kpi-icon">✅</div>
+          <div class="kpi-body">
+            <div class="kpi-value" id="kpi-done">--</div>
+            <div class="kpi-label">ปิดงานแล้ว</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== LOSS COST KPI ===== -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-icon">💸</span>
+        <h2 class="section-title">ค่าสูญเสีย</h2>
+      </div>
+      <div class="loss-banner">
+        <div class="loss-main">
+          <div class="loss-label">มูลค่าสูญเสียรวม</div>
+          <div class="loss-value" id="loss-total">฿--</div>
+          <div class="loss-sub" id="loss-sub-today">วันนี้: ฿--</div>
+        </div>
+        <div class="loss-stats">
+          <div class="loss-stat">
+            <div class="loss-stat-val" id="loss-avg-downtime">--</div>
+            <div class="loss-stat-lbl">Downtime เฉลี่ย (นาที)</div>
+          </div>
+          <div class="loss-stat-divider"></div>
+          <div class="loss-stat">
+            <div class="loss-stat-val" id="loss-avg-response">--</div>
+            <div class="loss-stat-lbl">Response เฉลี่ย (นาที)</div>
+          </div>
+          <div class="loss-stat-divider"></div>
+          <div class="loss-stat">
+            <div class="loss-stat-val" id="loss-avg-repair">--</div>
+            <div class="loss-stat-lbl">ซ่อมเฉลี่ย (นาที)</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== MACHINE STATUS ===== -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-icon">🏭</span>
+        <h2 class="section-title">สถานะเครื่อง</h2>
+        <span class="section-count" id="machine-count">0 เครื่อง</span>
+      </div>
+      <div class="machine-grid" id="machine-grid">
+        <div class="machine-skeleton"></div>
+        <div class="machine-skeleton"></div>
+        <div class="machine-skeleton"></div>
+      </div>
+    </section>
+
+    <!-- ===== CHARTS ===== -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-icon">📈</span>
+        <h2 class="section-title">แนวโน้ม 7 วัน</h2>
+      </div>
+      <div class="chart-card">
+        <div class="chart-tabs">
+          <button class="chart-tab active" onclick="switchChart('incidents')" id="tab-incidents">เคสปัญหา</button>
+          <button class="chart-tab" onclick="switchChart('loss')" id="tab-loss">ค่าสูญเสีย</button>
+          <button class="chart-tab" onclick="switchChart('downtime')" id="tab-downtime">Downtime</button>
+        </div>
+        <div class="chart-wrapper">
+          <canvas id="trend-chart"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== PREDICTION ===== -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-icon">🔮</span>
+        <h2 class="section-title">การคาดการณ์</h2>
+        <span class="ai-badge">AI</span>
+      </div>
+      <div class="prediction-cards" id="prediction-cards">
+        <!-- filled by JS -->
+      </div>
+    </section>
+
+    <!-- ===== PROBLEM LOG ===== -->
+    <section class="section">
+      <div class="section-header">
+        <span class="section-icon">📋</span>
+        <h2 class="section-title">รายงานปัญหา</h2>
+        <div class="filter-dropdown-wrap">
+          <select id="log-filter" class="log-filter-select" onchange="filterLog()">
+            <option value="all">ทั้งหมด</option>
+            <option value="Waiting">รอรับ</option>
+            <option value="Checking">ตรวจสอบ</option>
+            <option value="Repairing">ซ่อม</option>
+            <option value="Completed">เสร็จแล้ว</option>
+          </select>
+        </div>
+      </div>
+      <div class="log-list" id="log-list">
+        <!-- filled by JS -->
+      </div>
+    </section>
+
+    <div class="bottom-spacer"></div>
+  </div><!-- /dashboard-body -->
+
+</div><!-- /app -->
+
+<!-- ========== DETAIL MODAL ========== -->
+<div id="modal-detail" class="modal-overlay hidden">
+  <div class="modal modal-detail-inner">
+    <div class="modal-detail-header">
+      <div id="modal-detail-status-badge" class="detail-status-badge"></div>
+      <button class="modal-close-btn" onclick="closeDetailModal()">✕</button>
+    </div>
+    <div id="modal-detail-body" class="modal-detail-body">
+      <!-- filled by JS -->
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="script.js"></script>
+</body>
+</html>
